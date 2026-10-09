@@ -47,7 +47,14 @@ a{color:var(--primary)}
   radial-gradient(circle at 12% 18%,color-mix(in srgb,var(--secondary) 45%,transparent) 0 90px,transparent 91px),
   radial-gradient(circle at 92% 80%,color-mix(in srgb,var(--success) 35%,transparent) 0 120px,transparent 121px),
   linear-gradient(180deg,color-mix(in srgb,var(--primary) 18%,#fff),var(--bg))}
-.login-card{width:100%;max-width:440px;background:#fff;border-radius:28px;padding:1.6rem 1.4rem;box-shadow:0 18px 50px rgba(30,64,175,.16)}
+.login-pair{width:100%;max-width:980px;display:grid;grid-template-columns:1fr;border-radius:28px;overflow:hidden;box-shadow:0 18px 50px rgba(30,64,175,.2)}
+.login-card{background:#fff;padding:1.6rem 1.4rem;order:1}
+.guide-card{order:2;padding:1.6rem 1.4rem;color:#fff;background:linear-gradient(160deg,var(--primary),color-mix(in srgb,var(--primary) 55%,#7c3aed))}
+.guide-card h2{font-size:1.4rem;font-weight:700;margin:0 0 1rem}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:.7rem}
+.steps li{display:flex;gap:.8rem;align-items:center;background:rgba(255,255,255,.14);border-radius:18px;padding:.6rem .8rem;font-size:1.02rem;font-weight:500}
+.steps .ic{flex:none;width:48px;height:48px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:1.6rem}
+.guide-tip{margin-top:1rem;background:var(--secondary);color:#422006;border-radius:18px;padding:.7rem .9rem;font-weight:600}
 .login-hero{text-align:center}
 .login-hero .logo{height:76px;max-width:100%;object-fit:contain}
 .login-hero .mascot{font-size:4rem;animation:bob 2.4s ease-in-out infinite}
@@ -150,10 +157,11 @@ body.is-student{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 .chart-box{position:relative;height:260px}
 
 /* ===== Breakpoints (Mobile First) ===== */
-@media (min-width:576px){.fbar{grid-template-columns:repeat(3,1fr)}.login-card{padding:2rem}}
+@media (min-width:576px){.fbar{grid-template-columns:repeat(3,1fr)}.login-card,.guide-card{padding:2rem}}
 @media (min-width:768px){
   .s-links{display:flex}.bottom-nav{display:none}body.is-student{padding-bottom:0}
   .fbar{grid-template-columns:repeat(4,1fr)}.wrap{padding:1.4rem}.t-main{padding:1.4rem}
+  .login-pair{grid-template-columns:1fr 1fr}.guide-card{order:1}.login-card{order:2;display:flex;flex-direction:column;justify-content:center}
 }
 @media (min-width:992px){
   .t-side{display:block;position:fixed;inset:0 auto 0 0;width:256px;background:#fff;border-right:1px solid var(--line);padding:1rem .8rem;overflow-y:auto}
@@ -191,7 +199,7 @@ body.is-student{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script>
 /* ===== ตั้งค่า: วาง URL ของ Apps Script Web App (ลงท้ายด้วย /exec) ===== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbwTAL4Y2abMtk-vYzjxNg-WbcAEYi8KjmMbQQkjCxtN5C75TUHmD7j_Av1LyJ3PFzet/exec';
+const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE/exec';
 (function () {
 'use strict';
 /* ============ Helpers ============ */
@@ -280,21 +288,31 @@ function applySettings(st) {
 function renderLogin() {
   clearTimers(); document.body.className = '';
   const st = S.loginRole === 'STUDENT';
-  $('#app').innerHTML = `<div class="login-wrap"><div class="login-card pop">
-    <div class="login-hero">${isUrl(S.set.logoUrl) ? `<img class="logo" src="${esc(S.set.logoUrl)}" alt="">` : '<div class="mascot">📚</div>'}
-      <h1 class="h3 fw-bold mt-2 mb-0">${esc(S.set.systemName)}</h1><div class="text-muted small">${esc(S.set.schoolName)}</div>
-      <p class="fs-5 mt-2 mb-3">${st ? '👋 ยินดีต้อนรับนักอ่านตัวน้อย' : '👩‍🏫 สำหรับคุณครู'}</p></div>
-    <div class="role-switch mb-3">
-      <button type="button" class="${st ? 'on' : ''}" data-act="role" data-role="STUDENT">🧒 นักเรียน</button>
-      <button type="button" class="${st ? '' : 'on'}" data-act="role" data-role="TEACHER">👩‍🏫 ครู</button></div>
-    <form id="lf" novalidate>
-      <label class="form-label fw-semibold" for="lu">${st ? 'รหัสนักเรียน' : 'ชื่อผู้ใช้'}</label>
-      <input id="lu" class="form-control form-control-lg mb-3" name="username" autocomplete="username" autocapitalize="off" ${st ? 'inputmode="numeric"' : ''}>
-      <label class="form-label fw-semibold" for="lp">รหัสผ่าน</label>
-      <div class="input-group input-group-lg mb-3"><input id="lp" type="password" class="form-control" name="password" autocomplete="current-password">
-        <button type="button" class="btn btn-outline-secondary" data-act="eye" aria-label="แสดงรหัสผ่าน"><i class="bi bi-eye"></i></button></div>
-      <button class="btn btn-primary btn-kid w-100" type="submit">📖 เข้าสู่ระบบ</button>
-    </form></div></div>`;
+  const steps = st
+    ? [['🔑', 'ใส่รหัสนักเรียนและรหัสผ่าน แล้วกด "เข้าสู่ระบบ"'], ['📚', 'เลือกนิทานที่อยากอ่าน'], ['▶️', 'กดปุ่ม "เริ่มอ่าน" นาฬิกาจะเริ่มนับเวลา'], ['📖', 'อ่านให้จบ แล้วกดปุ่ม "จบการอ่าน"'], ['⭐', 'รับคะแนนและเหรียญรางวัล']]
+    : [['🔑', 'เข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่านของครู'], ['👧', 'เพิ่มนักเรียนและบทเรียนได้ในเมนูด้านข้าง'], ['🎚️', 'ตั้งเกณฑ์คะแนนได้เองโดยไม่ต้องแก้โค้ด'], ['📊', 'ดู Dashboard อันดับ และส่งออกรายงาน CSV']];
+  $('#app').innerHTML = `<div class="login-wrap"><div class="login-pair pop">
+    <section class="guide-card" aria-label="${st ? 'วิธีเล่น' : 'วิธีใช้งานสำหรับครู'}">
+      <h2>${st ? '🎮 วิธีเล่น' : '📋 วิธีใช้งานสำหรับครู'}</h2>
+      <ol class="steps">${steps.map(x => `<li><span class="ic" aria-hidden="true">${x[0]}</span><span>${x[1]}</span></li>`).join('')}</ol>
+      <div class="guide-tip">${st ? '🔥 อ่านทุกวันเพื่อสะสมวันต่อเนื่อง ยิ่งอ่านนาน ยิ่งได้คะแนนมาก!' : '💡 แก้ข้อมูลในชีต Google Sheets ได้โดยตรง ระบบอัปเดตเอง'}</div>
+    </section>
+    <section class="login-card">
+      <div class="login-hero">${isUrl(S.set.logoUrl) ? `<img class="logo" src="${esc(S.set.logoUrl)}" alt="">` : '<div class="mascot">📚</div>'}
+        <h1 class="h3 fw-bold mt-2 mb-0">${esc(S.set.systemName)}</h1><div class="text-muted small">${esc(S.set.schoolName)}</div>
+        <p class="fs-5 mt-2 mb-3">${st ? '👋 ยินดีต้อนรับนักอ่านตัวน้อย' : '👩‍🏫 สำหรับคุณครู'}</p></div>
+      <div class="role-switch mb-3">
+        <button type="button" class="${st ? 'on' : ''}" data-act="role" data-role="STUDENT">🧒 นักเรียน</button>
+        <button type="button" class="${st ? '' : 'on'}" data-act="role" data-role="TEACHER">👩‍🏫 ครู</button></div>
+      <form id="lf" novalidate>
+        <label class="form-label fw-semibold" for="lu">${st ? 'รหัสนักเรียน' : 'ชื่อผู้ใช้'}</label>
+        <input id="lu" class="form-control form-control-lg mb-3" name="username" autocomplete="username" autocapitalize="off" ${st ? 'inputmode="numeric"' : ''}>
+        <label class="form-label fw-semibold" for="lp">รหัสผ่าน</label>
+        <div class="input-group input-group-lg mb-3"><input id="lp" type="password" class="form-control" name="password" autocomplete="current-password">
+          <button type="button" class="btn btn-outline-secondary" data-act="eye" aria-label="แสดงรหัสผ่าน"><i class="bi bi-eye"></i></button></div>
+        <button class="btn btn-primary btn-kid w-100" type="submit">📖 เข้าสู่ระบบ</button>
+      </form>
+    </section></div></div>`;
 }
 async function doLogin(form) {
   const f = Object.fromEntries(new FormData(form)), st = S.loginRole === 'STUDENT';
@@ -744,7 +762,7 @@ window.addEventListener('hashchange', route);
 (async function boot() {
   const st = await call('getPublicSettings', {}, { text: 'กำลังเริ่มระบบ...', silent: true });
   if (!st) {
-    $('#app').innerHTML = `<div class="login-wrap"><div class="login-card text-center">${empty('🛠️', 'ระบบยังไม่พร้อมใช้งาน', esc((S.lastErr && S.lastErr.message) || 'กรุณาติดต่อผู้ดูแลระบบ'))}<button class="btn btn-primary mt-3" data-act="reload">ลองใหม่</button></div></div>`;
+    $('#app').innerHTML = `<div class="login-wrap"><div class="login-card text-center" style="max-width:440px;border-radius:28px">${empty('🛠️', 'ระบบยังไม่พร้อมใช้งาน', esc((S.lastErr && S.lastErr.message) || 'กรุณาติดต่อผู้ดูแลระบบ'))}<button class="btn btn-primary mt-3" data-act="reload">ลองใหม่</button></div></div>`;
     ACT.reload = () => location.reload(); return;
   }
   applySettings(st);
