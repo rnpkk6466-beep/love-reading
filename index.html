@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>ระบบรักการอ่าน</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=K2D:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -196,7 +197,7 @@ body.is-student{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script>
 /* ===== ตั้งค่า: วาง URL ของ Apps Script Web App (ลงท้ายด้วย /exec) ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwTAL4Y2abMtk-vYzjxNg-WbcAEYi8KjmMbQQkjCxtN5C75TUHmD7j_Av1LyJ3PFzet/exec';
@@ -235,7 +236,7 @@ function loading(on, text) {
 function handleErr(res, title) {
   S.lastErr = res;
   if (res.code === 'SESSION_EXPIRED') {
-    S.token = null; S.user = null; store.del('lr_token');
+    S.token = null; S.user = null; store.del('lr_token'); store.del('lr_user');
     Swal.fire({ icon: 'info', title: '⏰ หมดเวลาการใช้งาน', text: 'กรุณาเข้าสู่ระบบอีกครั้ง', confirmButtonText: 'ตกลง' }).then(() => { location.hash = '#/login'; route(); });
     return;
   }
@@ -319,14 +320,14 @@ async function doLogin(form) {
   if (!f.username.trim() || !f.password) return Swal.fire({ icon: 'warning', title: '⚠️ กรอกข้อมูลให้ครบ', text: st ? 'กรุณากรอกรหัสนักเรียนและรหัสผ่าน' : 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน', confirmButtonText: 'ตกลง' });
   const d = await call(st ? 'loginStudent' : 'loginTeacher', f, { text: 'กำลังเข้าสู่ระบบ...', errTitle: 'ไม่สามารถเข้าสู่ระบบได้' });
   if (!d) return;
-  S.token = d.token; S.user = d.user; store.set('lr_token', d.token);
+  S.token = d.token; S.user = d.user; store.set('lr_token', d.token); store.set('lr_user', JSON.stringify(d.user));
   location.hash = d.user.role === 'STUDENT' ? '#/student' : '#/teacher'; route();
 }
 async function doLogout() {
   const c = await Swal.fire({ title: 'ออกจากระบบ?', icon: 'question', showCancelButton: true, confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'ยกเลิก' });
   if (!c.isConfirmed) return;
   await call('logout', {}, { silent: true });
-  S.token = null; S.user = null; S.opts = null; store.del('lr_token'); location.hash = '#/login'; route();
+  S.token = null; S.user = null; S.opts = null; store.del('lr_token'); store.del('lr_user'); location.hash = '#/login'; route();
 }
 
 /* ============ Student ============ */
@@ -758,17 +759,29 @@ function route() {
 }
 window.addEventListener('hashchange', route);
 
-/* ============ Boot ============ */
-(async function boot() {
-  const st = await call('getPublicSettings', {}, { text: 'กำลังเริ่มระบบ...', silent: true });
-  if (!st) {
-    $('#app').innerHTML = `<div class="login-wrap"><div class="login-card text-center" style="max-width:440px;border-radius:28px">${empty('🛠️', 'ระบบยังไม่พร้อมใช้งาน', esc((S.lastErr && S.lastErr.message) || 'กรุณาติดต่อผู้ดูแลระบบ'))}<button class="btn btn-primary mt-3" data-act="reload">ลองใหม่</button></div></div>`;
-    ACT.reload = () => location.reload(); return;
-  }
-  applySettings(st);
-  const t = store.get('lr_token');
-  if (t) { S.token = t; loading(true, 'กำลังกู้คืนการเข้าสู่ระบบ...'); const u = await call('getCurrentUser', {}, { silent: true, text: false }); loading(false); if (u) S.user = u; else { S.token = null; store.del('lr_token'); } }
+/* ============ Boot (แสดงหน้าทันที ไม่รอ Server) ============ */
+(function boot() {
+  // 1) ใช้ธีม/ชื่อระบบที่จำไว้จากครั้งก่อน (ไม่ต้องรอ Server)
+  try { const c = localStorage.getItem('lr_settings'); if (c) applySettings(JSON.parse(c)); } catch (e) { }
+  // 2) กู้การเข้าสู่ระบบจากข้อมูลที่จำไว้ แล้วแสดงหน้าทันที
+  const t = store.get('lr_token'); let u = null;
+  try { u = JSON.parse(store.get('lr_user') || 'null'); } catch (e) { }
+  if (t && u) { S.token = t; S.user = u; }
   route();
+  // 3) เบื้องหลัง: โหลดค่าตั้งต้นจริง + ตรวจ Session (ไม่มีหน้าโหลดบัง)
+  call('getPublicSettings', {}, { silent: true }).then(st => {
+    if (st) {
+      const changed = JSON.stringify(st) !== JSON.stringify(S.set);
+      applySettings(st);
+      try { localStorage.setItem('lr_settings', JSON.stringify(st)); } catch (e) { }
+      const lu = $('#lu'), lp = $('#lp');
+      if (changed && !S.user && lu && !lu.value && lp && !lp.value) renderLogin();   // ไม่ทับข้อความที่กำลังพิมพ์
+    } else if (S.lastErr && S.lastErr.code === 'NO_SHEET' && !S.user) {
+      $('#app').innerHTML = `<div class="login-wrap"><div class="login-card text-center" style="max-width:440px;border-radius:28px">${empty('🛠️', 'ระบบยังไม่พร้อมใช้งาน', esc(S.lastErr.message))}<button class="btn btn-primary mt-3" data-act="reload">ลองใหม่</button></div></div>`;
+      ACT.reload = () => location.reload();
+    }
+  });
+  if (S.token) call('getCurrentUser', {}, { silent: true }).then(me => { if (me) { S.user = me; store.set('lr_user', JSON.stringify(me)); } });
 })();
 })();
 </script>
