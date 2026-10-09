@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ระบบรักการอ่าน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+/* ===== Design tokens (ค่าสีถูกทับด้วย Settings ตอนเปิดเว็บ) ===== */
+:root{
+  --primary:#2563EB; --secondary:#FACC15; --success:#22C55E; --bg:#F8FAFC;
+  --primary-dark:color-mix(in srgb,var(--primary) 78%,#000);
+  --primary-soft:color-mix(in srgb,var(--primary) 11%,#fff);
+  --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --radius:20px;
+  --bs-primary:var(--primary); --bs-body-font-family:'Prompt','Noto Sans Thai',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+body{font-family:var(--bs-body-font-family);background:var(--bg);color:var(--ink);font-size:1rem;line-height:1.55;-webkit-tap-highlight-color:transparent;
+  padding-bottom:env(safe-area-inset-bottom)}
+img{max-width:100%}
+a{color:var(--primary)}
+.btn{min-height:44px;border-radius:14px;font-weight:600}
+.btn-primary{--bs-btn-bg:var(--primary);--bs-btn-border-color:var(--primary);--bs-btn-hover-bg:var(--primary-dark);--bs-btn-hover-border-color:var(--primary-dark);--bs-btn-active-bg:var(--primary-dark);--bs-btn-active-border-color:var(--primary-dark);--bs-btn-disabled-bg:var(--primary);--bs-btn-disabled-border-color:var(--primary)}
+.btn-outline-primary{--bs-btn-color:var(--primary);--bs-btn-border-color:var(--primary);--bs-btn-hover-bg:var(--primary);--bs-btn-hover-border-color:var(--primary);--bs-btn-active-bg:var(--primary);--bs-btn-active-border-color:var(--primary)}
+.btn-kid{font-size:1.25rem;padding:.85rem 1.6rem;min-height:56px;border-radius:18px;box-shadow:0 5px 0 rgba(0,0,0,.18)}
+.btn-kid:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.btn-sun{background:var(--secondary);border-color:var(--secondary);color:#422006}
+.btn-sun:hover{background:color-mix(in srgb,var(--secondary) 85%,#000);color:#422006}
+.btn-go{background:var(--success);border-color:var(--success);color:#fff}
+.btn-go:hover{background:color-mix(in srgb,var(--success) 85%,#000);color:#fff}
+.form-control,.form-select{min-height:46px;border-radius:12px}
+.form-control:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 .25rem color-mix(in srgb,var(--primary) 25%,transparent)}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--primary) 55%,#fff);outline-offset:2px}
+.emoji{display:inline-block;line-height:1}
+.loader{position:fixed;inset:0;z-index:2000;background:rgba(255,255,255,.72);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.loader-box{background:#fff;border-radius:var(--radius);padding:1.4rem 2rem;text-align:center;box-shadow:0 10px 40px rgba(15,23,42,.18);font-weight:600}
+.loader-book{font-size:2.6rem;animation:flip 1s ease-in-out infinite}
+@keyframes flip{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg) translateY(-4px)}}
+
+/* ===== Login ===== */
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:1rem;background:
+  radial-gradient(circle at 12% 18%,color-mix(in srgb,var(--secondary) 45%,transparent) 0 90px,transparent 91px),
+  radial-gradient(circle at 92% 80%,color-mix(in srgb,var(--success) 35%,transparent) 0 120px,transparent 121px),
+  linear-gradient(180deg,color-mix(in srgb,var(--primary) 18%,#fff),var(--bg))}
+.login-card{width:100%;max-width:440px;background:#fff;border-radius:28px;padding:1.6rem 1.4rem;box-shadow:0 18px 50px rgba(30,64,175,.16)}
+.login-hero{text-align:center}
+.login-hero .logo{height:76px;max-width:100%;object-fit:contain}
+.login-hero .mascot{font-size:4rem;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.role-switch{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;background:var(--primary-soft);padding:.35rem;border-radius:16px}
+.role-switch button{border:0;background:transparent;border-radius:12px;min-height:46px;font-weight:600;color:var(--muted)}
+.role-switch button.on{background:#fff;color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+
+/* ===== Student shell ===== */
+.s-head{position:sticky;top:0;z-index:100;background:var(--primary);color:#fff;padding:.6rem 0;padding-top:calc(.6rem + env(safe-area-inset-top))}
+.s-head .inner{max-width:1200px;margin:0 auto;padding:0 1rem;display:flex;align-items:center;gap:.75rem}
+.s-head .brand{display:flex;align-items:center;gap:.5rem;font-weight:700;font-size:1.1rem;margin-right:auto;min-width:0}
+.s-head .brand span.t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-head .brand img{height:34px}
+.s-head .me{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:999px;padding:.3rem .85rem;min-height:44px;max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-links{display:none;gap:.25rem}
+.s-links a{color:#fff;text-decoration:none;padding:.5rem 1rem;border-radius:12px;font-weight:600}
+.s-links a.on,.s-links a:hover{background:rgba(255,255,255,.22)}
+.icon-btn{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:12px;width:44px;height:44px}
+.wrap{max-width:1200px;margin:0 auto;padding:1rem}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:100;display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.bottom-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:62px;color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:600}
+.bottom-nav a i{font-size:1.45rem;line-height:1}
+.bottom-nav a.on{color:var(--primary);background:var(--primary-soft)}
+body.is-student{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+
+/* ===== Cards ===== */
+.panel{background:#fff;border-radius:var(--radius);padding:1.1rem;box-shadow:0 2px 14px rgba(15,23,42,.06)}
+.hello{background:linear-gradient(135deg,var(--primary),color-mix(in srgb,var(--primary) 60%,#7c3aed));color:#fff;border-radius:var(--radius);padding:1.1rem 1.2rem;display:flex;gap:1rem;align-items:center}
+.hello .big{font-size:2.8rem}
+.hello h1{font-size:1.25rem;margin:0;font-weight:700}
+.lvbar{height:10px;border-radius:99px;background:rgba(255,255,255,.3);overflow:hidden;margin-top:.4rem}
+.lvbar>i{display:block;height:100%;background:var(--secondary);border-radius:99px}
+.stat-card{border-radius:var(--radius);padding:.9rem 1rem;height:100%;color:#fff;position:relative;overflow:hidden}
+.stat-card .stat-icon{font-size:1.9rem;line-height:1}
+.stat-card .stat-label{font-size:.9rem;opacity:.92;font-weight:500}
+.stat-card .stat-val{font-size:1.7rem;font-weight:700;line-height:1.2}
+.stat-card .stat-val small{font-size:.85rem;font-weight:500}
+.c-star{background:#f59e0b}.c-read{background:var(--primary)}.c-book{background:#10b981}.c-medal{background:#8b5cf6}.c-pink{background:#ec4899}
+.goal-bar{height:26px;border-radius:99px;background:#e0f2fe;overflow:hidden}
+.goal-bar>i{display:block;height:100%;background:repeating-linear-gradient(45deg,var(--success),var(--success) 12px,color-mix(in srgb,var(--success) 80%,#fff) 12px,color-mix(in srgb,var(--success) 80%,#fff) 24px);border-radius:99px;transition:width .6s}
+.resume{background:#fff7ed;border:2px dashed #fb923c;border-radius:var(--radius);padding:.9rem 1rem;display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}
+.chips{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;scrollbar-width:none}
+.chip{border:2px solid var(--line);background:#fff;border-radius:99px;padding:.35rem 1rem;min-height:44px;white-space:nowrap;font-weight:600;color:var(--muted)}
+.chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.lesson-card{background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:0 2px 14px rgba(15,23,42,.07);height:100%;display:flex;flex-direction:column;border:2px solid transparent}
+.lesson-card .pic{aspect-ratio:16/10;display:grid;place-items:center;background:var(--primary-soft);overflow:hidden}
+.lesson-card .pic img{width:100%;height:100%;object-fit:cover}
+.lesson-card .pic .emoji{font-size:4.2rem}
+.lesson-card .body{padding:.9rem 1rem 1rem;display:flex;flex-direction:column;gap:.35rem;flex:1}
+.lesson-card h3{font-size:1.15rem;font-weight:700;margin:0}
+.lesson-card p{margin:0;color:var(--muted);font-size:.92rem}
+.tag{display:inline-block;background:var(--primary-soft);color:var(--primary-dark);border-radius:99px;padding:.1rem .65rem;font-size:.78rem;font-weight:600}
+.tag.y{background:#fef9c3;color:#854d0e}
+.hist-item{display:flex;gap:.8rem;align-items:center;background:#fff;border-radius:16px;padding:.7rem .9rem;box-shadow:0 1px 8px rgba(15,23,42,.05)}
+.hist-item .pic{width:52px;height:52px;border-radius:14px;background:var(--primary-soft);display:grid;place-items:center;flex:none;overflow:hidden}
+.hist-item .pic .emoji{font-size:1.9rem}.hist-item .pic img{width:100%;height:100%;object-fit:cover}
+.score-pill{margin-left:auto;background:#fef3c7;color:#92400e;border-radius:99px;padding:.2rem .8rem;font-weight:700;white-space:nowrap}
+.badge-card{background:#fff;border-radius:var(--radius);padding:1rem;text-align:center;height:100%;box-shadow:0 2px 12px rgba(15,23,42,.06)}
+.badge-card .ic{font-size:3rem}
+.badge-card.locked{opacity:.78}.badge-card.locked .ic{filter:grayscale(1)}
+.empty{text-align:center;padding:2.2rem 1rem;color:var(--muted)}.empty .emoji{font-size:3.4rem}.empty h4{color:var(--ink);font-size:1.15rem;margin-top:.6rem}
+
+/* ===== Reading ===== */
+.read-top{position:sticky;top:calc(58px + env(safe-area-inset-top));z-index:50}
+.timer-box{background:#fff;border:3px solid var(--primary);border-radius:var(--radius);padding:.8rem 1rem;text-align:center;box-shadow:0 8px 24px rgba(37,99,235,.15)}
+.timer{font-size:clamp(2.6rem,13vw,4.6rem);font-weight:700;font-variant-numeric:tabular-nums;color:var(--primary);line-height:1.1;letter-spacing:.02em}
+.pulse{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--success);margin-right:.4rem;animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}100%{box-shadow:0 0 0 12px rgba(34,197,94,0)}}
+.content-frame{width:100%;height:62vh;min-height:320px;border:0;border-radius:var(--radius);background:#fff;box-shadow:0 2px 14px rgba(15,23,42,.08)}
+.story{white-space:pre-wrap;overflow-wrap:anywhere;line-height:2;font-weight:500;font-size:1.35rem}
+.ready-card{max-width:560px;margin:0 auto;text-align:center}
+.ready-card .pic{font-size:6rem}.ready-card img.cover{max-height:240px;border-radius:var(--radius)}
+.pop{animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.swal2-popup{font-family:var(--bs-body-font-family);border-radius:24px}
+
+/* ===== Teacher shell ===== */
+.t-top{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:.6rem;padding:.5rem 1rem;padding-top:calc(.5rem + env(safe-area-inset-top))}
+.t-top .ttl{font-weight:700;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-menu a{display:flex;align-items:center;gap:.7rem;padding:.7rem .9rem;border-radius:14px;color:var(--ink);text-decoration:none;font-weight:500;min-height:46px}
+.t-menu a i{font-size:1.2rem;width:1.4rem;text-align:center}
+.t-menu a:hover{background:var(--primary-soft)}
+.t-menu a.on{background:var(--primary);color:#fff}
+.t-side{display:none}
+.t-brand{display:flex;align-items:center;gap:.6rem;font-weight:700;padding:.4rem .5rem 1rem;font-size:1.1rem}.t-brand img{height:36px}
+.t-main{padding:1rem;max-width:1400px}
+.page-head{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:1rem}.page-head h1{font-size:1.4rem;font-weight:700;margin:0 auto 0 0}
+.fbar{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;background:#fff;border-radius:var(--radius);padding:.9rem;margin-bottom:1rem;box-shadow:0 2px 12px rgba(15,23,42,.05)}
+.fbar label{font-size:.8rem;color:var(--muted);font-weight:600}
+.fbar .full{grid-column:1/-1}
+.tbl-wrap{overflow-x:auto;background:#fff;border-radius:var(--radius);box-shadow:0 2px 12px rgba(15,23,42,.05)}
+.tbl-wrap table{margin:0;min-width:100%}
+.tbl-wrap th{background:var(--primary-soft);font-weight:600;white-space:nowrap}
+.tbl-wrap td{vertical-align:middle}
+.tr-click{cursor:pointer}
+.rank-row{display:flex;gap:.8rem;align-items:center;padding:.7rem .4rem;border-bottom:1px solid var(--line)}.rank-row:last-child{border:0}
+.rank-no{width:2.4rem;text-align:center;font-size:1.5rem;font-weight:700}
+.mini-bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;min-width:60px}.mini-bar>i{display:block;height:100%;background:var(--primary)}
+.chart-box{position:relative;height:260px}
+
+/* ===== Breakpoints (Mobile First) ===== */
+@media (min-width:576px){.fbar{grid-template-columns:repeat(3,1fr)}.login-card{padding:2rem}}
+@media (min-width:768px){
+  .s-links{display:flex}.bottom-nav{display:none}body.is-student{padding-bottom:0}
+  .fbar{grid-template-columns:repeat(4,1fr)}.wrap{padding:1.4rem}.t-main{padding:1.4rem}
+}
+@media (min-width:992px){
+  .t-side{display:block;position:fixed;inset:0 auto 0 0;width:256px;background:#fff;border-right:1px solid var(--line);padding:1rem .8rem;overflow-y:auto}
+  .t-top .menu-btn{display:none}.t-shell{margin-left:256px}
+  .fbar{grid-template-columns:repeat(6,1fr)}.fbar .full{grid-column:auto}
+}
+@media (min-width:1440px){.wrap{max-width:1360px}}
+@media (min-width:1920px){html{font-size:18px}.wrap{max-width:1600px}}
+@media (max-width:359px){html{font-size:15px}.hello .big{font-size:2.2rem}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Loading overlay -->
+  <div id="loader" class="loader d-none" role="status" aria-live="polite">
+    <div class="loader-box"><div class="loader-book">📖</div><div id="loaderText">กำลังโหลดข้อมูล...</div></div>
+  </div>
+
+  <!-- Modal กลาง ใช้ซ้ำทุกหน้า -->
+  <div class="modal fade" id="mainModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" id="mTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button></div>
+        <div class="modal-body" id="mBody"></div>
+        <div class="modal-footer" id="mFoot"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+/* ===== ตั้งค่า: วาง URL ของ Apps Script Web App (ลงท้ายด้วย /exec) ===== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbwTAL4Y2abMtk-vYzjxNg-WbcAEYi8KjmMbQQkjCxtN5C75TUHmD7j_Av1LyJ3PFzet/exec';
+(function () {
+'use strict';
+/* ============ Helpers ============ */
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const S = { fs: 1.35, token: null, user: null, set: { systemName: 'ระบบรักการอ่าน', schoolName: '', logoUrl: '' }, opts: null, rows: {}, timers: [], chart: null, mem: {}, lastErr: null, loginRole: 'STUDENT' };
+const store = {
+  get(k) { try { return sessionStorage.getItem(k); } catch (e) { return S.mem[k] || null; } },
+  set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { S.mem[k] = v; } },
+  del(k) { try { sessionStorage.removeItem(k); } catch (e) { delete S.mem[k]; } }
+};
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const isUrl = s => /^https?:\/\//i.test(s || '');
+const fmtN = n => Number(n || 0).toLocaleString('th-TH');
+const fmtDate = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? `${m[3]}/${m[2]}/${+m[1] + 543}` : (s || ''); };
+const clock = sec => [Math.floor(sec / 3600), Math.floor(sec % 3600 / 60), sec % 60].map(n => String(n).padStart(2, '0')).join(':');
+const media = (img, cls) => isUrl(img)
+  ? `<img class="${cls || ''}" src="${esc(img)}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('📚'))">`
+  : `<span class="emoji ${cls || ''}">${esc(img || '📚')}</span>`;
+const logoHtml = () => isUrl(S.set.logoUrl) ? `<img src="${esc(S.set.logoUrl)}" alt="">` : '<span class="emoji">📚</span>';
+const empty = (icon, title, sub) => `<div class="empty"><div class="emoji">${icon}</div><h4>${title}</h4><div>${sub || ''}</div></div>`;
+const view = () => $('#view');
+const clearTimers = () => { S.timers.forEach(t => { clearInterval(t); clearTimeout(t); }); S.timers = []; if (S.chart) { S.chart.destroy(); S.chart = null; } };
+const formObj = sel => { const o = {}; $$('[name]', $(sel)).forEach(el => { o[el.name] = el.type === 'checkbox' ? el.checked : el.value; }); return o; };
+
+/* ============ Loading + API ============ */
+let loads = 0;
+function loading(on, text) {
+  loads = Math.max(0, loads + (on ? 1 : -1));
+  if (text) $('#loaderText').textContent = text;
+  $('#loader').classList.toggle('d-none', loads === 0);
+}
+function handleErr(res, title) {
+  S.lastErr = res;
+  if (res.code === 'SESSION_EXPIRED') {
+    S.token = null; S.user = null; store.del('lr_token');
+    Swal.fire({ icon: 'info', title: '⏰ หมดเวลาการใช้งาน', text: 'กรุณาเข้าสู่ระบบอีกครั้ง', confirmButtonText: 'ตกลง' }).then(() => { location.hash = '#/login'; route(); });
+    return;
+  }
+  Swal.fire({ icon: 'error', title: '❌ ' + (title || 'เกิดข้อผิดพลาด'), text: res.message || 'กรุณาลองใหม่อีกครั้ง', confirmButtonText: 'ตกลง' });
+}
+/** เรียก Backend ผ่าน api(token, action, payload) คืนค่า data หรือ null เมื่อผิดพลาด (แสดง SweetAlert2 ให้แล้ว) */
+function call(action, payload, o) {
+  o = o || {};
+  return new Promise(resolve => {
+    const show = o.text !== false && !o.silent;
+    if (show) loading(true, o.text || 'กำลังโหลดข้อมูล...');
+    const fail = () => {
+      if (show) loading(false);
+      S.lastErr = { code: 'NETWORK', message: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+      if (!o.silent) handleErr({ message: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่' }, 'เครือข่ายขัดข้อง');
+      resolve(null);
+    };
+    if (!API_URL || API_URL.indexOf('PASTE_') === 0) { S.lastErr = { message: 'ยังไม่ได้ตั้งค่า API_URL ในไฟล์ index.html' }; if (show) loading(false); return resolve(null); }
+    // ส่ง body เป็นข้อความล้วน (ไม่ตั้ง Content-Type) เพื่อเป็น "simple request" ไม่ต้อง preflight CORS
+    fetch(API_URL, { method: 'POST', redirect: 'follow', body: JSON.stringify({ token: S.token, action: action, payload: payload || {} }) })
+      .then(r => r.json())
+      .then(res => {
+        if (show) loading(false);
+        if (res && res.success) { S.lastErr = null; return resolve(res.data === null ? {} : res.data); }
+        S.lastErr = res || {};
+        if (!o.silent) handleErr(res || {}, o.errTitle); else if (res && res.code === 'SESSION_EXPIRED') handleErr(res);
+        resolve(null);
+      })
+      .catch(fail);
+  });
+}
+const toast = (title, icon) => Swal.fire({ toast: true, position: 'top', icon: icon || 'success', title, showConfirmButton: false, timer: 2500 });
+let modal;
+function openModal(title, body, foot) {
+  $('#mTitle').textContent = title; $('#mBody').innerHTML = body; $('#mFoot').innerHTML = foot || '';
+  modal = modal || new bootstrap.Modal($('#mainModal')); modal.show();
+}
+const closeModal = () => { if (modal) modal.hide(); };
+const retryBox = () => `<div class="panel">${empty('📡', 'โหลดข้อมูลไม่สำเร็จ', '<button class="btn btn-primary mt-2" data-act="reload">ลองใหม่</button>')}</div>`;
+
+function applySettings(st) {
+  S.set = st;
+  const r = document.documentElement.style;
+  r.setProperty('--primary', st.primaryColor); r.setProperty('--secondary', st.secondaryColor);
+  r.setProperty('--success', st.successColor); r.setProperty('--bg', st.backgroundColor);
+  document.title = st.systemName;
+}
+
+/* ============ Login ============ */
+function renderLogin() {
+  clearTimers(); document.body.className = '';
+  const st = S.loginRole === 'STUDENT';
+  $('#app').innerHTML = `<div class="login-wrap"><div class="login-card pop">
+    <div class="login-hero">${isUrl(S.set.logoUrl) ? `<img class="logo" src="${esc(S.set.logoUrl)}" alt="">` : '<div class="mascot">📚</div>'}
+      <h1 class="h3 fw-bold mt-2 mb-0">${esc(S.set.systemName)}</h1><div class="text-muted small">${esc(S.set.schoolName)}</div>
+      <p class="fs-5 mt-2 mb-3">${st ? '👋 ยินดีต้อนรับนักอ่านตัวน้อย' : '👩‍🏫 สำหรับคุณครู'}</p></div>
+    <div class="role-switch mb-3">
+      <button type="button" class="${st ? 'on' : ''}" data-act="role" data-role="STUDENT">🧒 นักเรียน</button>
+      <button type="button" class="${st ? '' : 'on'}" data-act="role" data-role="TEACHER">👩‍🏫 ครู</button></div>
+    <form id="lf" novalidate>
+      <label class="form-label fw-semibold" for="lu">${st ? 'รหัสนักเรียน' : 'ชื่อผู้ใช้'}</label>
+      <input id="lu" class="form-control form-control-lg mb-3" name="username" autocomplete="username" autocapitalize="off" ${st ? 'inputmode="numeric"' : ''}>
+      <label class="form-label fw-semibold" for="lp">รหัสผ่าน</label>
+      <div class="input-group input-group-lg mb-3"><input id="lp" type="password" class="form-control" name="password" autocomplete="current-password">
+        <button type="button" class="btn btn-outline-secondary" data-act="eye" aria-label="แสดงรหัสผ่าน"><i class="bi bi-eye"></i></button></div>
+      <button class="btn btn-primary btn-kid w-100" type="submit">📖 เข้าสู่ระบบ</button>
+    </form></div></div>`;
+}
+async function doLogin(form) {
+  const f = Object.fromEntries(new FormData(form)), st = S.loginRole === 'STUDENT';
+  if (!f.username.trim() || !f.password) return Swal.fire({ icon: 'warning', title: '⚠️ กรอกข้อมูลให้ครบ', text: st ? 'กรุณากรอกรหัสนักเรียนและรหัสผ่าน' : 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน', confirmButtonText: 'ตกลง' });
+  const d = await call(st ? 'loginStudent' : 'loginTeacher', f, { text: 'กำลังเข้าสู่ระบบ...', errTitle: 'ไม่สามารถเข้าสู่ระบบได้' });
+  if (!d) return;
+  S.token = d.token; S.user = d.user; store.set('lr_token', d.token);
+  location.hash = d.user.role === 'STUDENT' ? '#/student' : '#/teacher'; route();
+}
+async function doLogout() {
+  const c = await Swal.fire({ title: 'ออกจากระบบ?', icon: 'question', showCancelButton: true, confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'ยกเลิก' });
+  if (!c.isConfirmed) return;
+  await call('logout', {}, { silent: true });
+  S.token = null; S.user = null; S.opts = null; store.del('lr_token'); location.hash = '#/login'; route();
+}
+
+/* ============ Student ============ */
+function sShell(on) {
+  document.body.className = 'is-student';
+  const nav = [['home', '#/student', 'bi-house-heart-fill', 'หน้าแรก'], ['history', '#/history', 'bi-clock-history', 'ประวัติ'], ['badges', '#/badges', 'bi-trophy-fill', 'เหรียญ']];
+  $('#app').innerHTML = `<header class="s-head"><div class="inner"><div class="brand">${logoHtml()}<span class="t">${esc(S.set.systemName)}</span></div>
+    <nav class="s-links">${nav.map(n => `<a href="${n[1]}" class="${n[0] === on ? 'on' : ''}">${n[3]}</a>`).join('')}</nav>
+    <button class="me" data-act="profile"><i class="bi bi-person-circle"></i> ${esc(S.user.name)}</button>
+    <button class="icon-btn" data-act="logout" aria-label="ออกจากระบบ"><i class="bi bi-box-arrow-right"></i></button></div></header>
+    <main class="wrap" id="view"></main>
+    <nav class="bottom-nav">${nav.map(n => `<a href="${n[1]}" class="${n[0] === on ? 'on' : ''}"><i class="bi ${n[2]}"></i>${n[3]}</a>`).join('')}</nav>`;
+}
+const statCard = (icon, label, val, unit, cls) => `<div class="col-6 col-lg-3"><div class="stat-card ${cls}"><div class="stat-icon">${icon}</div><div class="stat-label">${label}</div><div class="stat-val">${fmtN(val)} <small>${unit}</small></div></div></div>`;
+
+async function vStudentHome() {
+  sShell('home');
+  const [d, lessons] = await Promise.all([call('getStudentDashboard'), call('getStudentLessons')]);
+  if (!d || !lessons) { view().innerHTML = retryBox(); return; }
+  const st = d.stats, lv = d.level, g = d.goal, cats = [...new Set(lessons.map(l => l.category).filter(Boolean))];
+  view().innerHTML = `
+    <div class="hello mb-3"><div class="big">${lv.icon}</div><div class="flex-fill min-w-0">
+      <h1>สวัสดี ${esc(d.student.fullName)}</h1>
+      <div>Lv.${lv.level} ${esc(lv.name)}${lv.nextAt ? ` · อีก ${fmtN(lv.nextAt - st.score)} คะแนนขึ้นระดับถัดไป` : ' · ระดับสูงสุดแล้ว!'}</div>
+      <div class="lvbar"><i style="width:${lv.percent}%"></i></div></div></div>
+    ${d.activeReading ? `<div class="resume mb-3"><span class="emoji fs-2">📖</span><div class="flex-fill"><b>กำลังอ่านค้างอยู่</b><div class="small">${esc(d.activeReading.lesson.title)}</div></div>
+      <a class="btn btn-sun btn-kid" href="#/reading/${esc(d.activeReading.lessonId)}">▶ อ่านต่อ</a></div>` : ''}
+    <div class="row g-2 g-md-3 mb-3">
+      ${statCard('⭐', 'คะแนนสะสม', st.score, 'คะแนน', 'c-star')}${statCard('📖', 'เวลาอ่านสะสม', st.minutes, 'นาที', 'c-read')}
+      ${statCard('📚', 'อ่านแล้ว', st.books, 'เรื่อง', 'c-book')}${statCard('🏆', 'เหรียญ', d.badgesEarned, 'เหรียญ', 'c-medal')}</div>
+    <div class="panel mb-4"><div class="d-flex justify-content-between align-items-center mb-2"><b class="fs-5">🎯 เป้าหมายวันนี้</b>
+      ${st.streak ? `<span class="tag y">🔥 อ่านต่อเนื่อง ${st.streak} วัน</span>` : ''}</div>
+      <div class="d-flex justify-content-between small mb-1"><span>${fmtN(g.today)} / ${fmtN(g.goal)} นาที</span><span>${g.remaining ? `เหลืออีก ${fmtN(g.remaining)} นาที` : '🎉 ถึงเป้าหมายแล้ว!'}</span></div>
+      <div class="goal-bar" role="progressbar" aria-valuenow="${g.percent}" aria-valuemin="0" aria-valuemax="100"><i style="width:${g.percent}%"></i></div></div>
+    <h2 class="h4 fw-bold mb-2">📚 เลือกเรื่องที่อยากอ่าน</h2>
+    ${cats.length > 1 ? `<div class="chips mb-3"><button class="chip on" data-act="cat" data-cat="">ทั้งหมด</button>${cats.map(c => `<button class="chip" data-act="cat" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
+    ${lessons.length ? `<div class="row g-3" id="lessonGrid">${lessons.map(l => `<div class="col-12 col-sm-6 col-lg-4 col-xl-3" data-cat="${esc(l.category)}">
+      <article class="lesson-card"><div class="pic">${media(l.imageUrl)}</div><div class="body"><h3>${esc(l.title)}</h3><p>${esc(l.description)}</p>
+        <div class="d-flex gap-1 flex-wrap">${l.level ? `<span class="tag">${esc(l.level)}</span>` : ''}${l.category ? `<span class="tag y">${esc(l.category)}</span>` : ''}${l.readCount ? `<span class="tag">✔ อ่านแล้ว ${l.readCount} ครั้ง</span>` : ''}</div>
+        <a class="btn btn-primary btn-kid mt-auto" href="#/reading/${esc(l.lessonId)}">📖 อ่านเลย</a></div></article></div>`).join('')}</div>`
+      : `<div class="panel">${empty('📚', 'ยังไม่มีบทเรียน', 'คุณครูกำลังเตรียมเรื่องสนุก ๆ<br>ให้นักเรียนอยู่')}</div>`}`;
+}
+
+/* ----- Reading ----- */
+let R = null;
+const embedUrl = u => {
+  try {
+    const x = new URL(u), h = x.hostname.replace(/^www\./, '');
+    if (h === 'youtube.com' || h === 'm.youtube.com') { const v = x.searchParams.get('v'); if (v) return 'https://www.youtube.com/embed/' + v; }
+    if (h === 'youtu.be') return 'https://www.youtube.com/embed/' + x.pathname.slice(1);
+    if (h === 'drive.google.com') { const m = x.pathname.match(/\/file\/d\/([^/]+)/); if (m) return 'https://drive.google.com/file/d/' + m[1] + '/preview'; }
+    if (h === 'docs.google.com') return u.replace(/\/(edit|view)(\?.*)?$/, '/preview');
+  } catch (e) { }
+  return u;
+};
+async function vReading(id) {
+  sShell('home');
+  const [lesson, act, rules] = await Promise.all([call('getLessonById', { lessonId: id }), call('getActiveReading'), call('getScoreRules', {}, { silent: true })]);
+  if (!lesson) { location.hash = '#/student'; return; }
+  R = { lesson, rules: (rules || []).filter(r => r.score > 0).sort((a, b) => a.minMinutes - b.minMinutes), ann: {}, busy: false };
+  const ses = act && act.session && act.session.lessonId === id ? act.session : null;
+  if (ses) return enterReading(ses);
+  const l = lesson;
+  view().innerHTML = `<div class="ready-card panel pop"><a href="#/student" class="btn btn-sm btn-light float-start"><i class="bi bi-arrow-left"></i> กลับ</a><div class="clearfix"></div>
+    <div class="pic">${isUrl(l.imageUrl) ? `<img class="cover" src="${esc(l.imageUrl)}" alt="">` : esc(l.imageUrl || '📚')}</div>
+    <h1 class="h2 fw-bold mt-2">${esc(l.title)}</h1><p class="text-muted">${esc(l.description)}</p>
+    <h2 class="h4 my-3">พร้อมแล้วหรือยัง?</h2>
+    <button class="btn btn-go btn-kid w-100" data-act="startRead">▶ เริ่มอ่าน</button></div>`;
+}
+function setFs(d) { S.fs = Math.max(1, Math.min(2.6, S.fs + d)); const el = $('#story'); if (el) el.style.fontSize = S.fs + 'rem'; }
+async function startRead(btn) {
+  btn.disabled = true;
+  const s = await call('startReading', { lessonId: R.lesson.lessonId }, { text: 'กำลังเริ่มจับเวลา...' });
+  if (!s) { btn.disabled = false; return; }
+  enterReading(s);
+}
+function enterReading(s) {
+  R.sessionId = s.sessionId; R.startMs = s.startMs; R.off = s.serverNowMs - Date.now(); R.lesson = s.lesson || R.lesson;
+  const el0 = (Date.now() + R.off - R.startMs) / 60000;
+  R.rules.forEach(r => { if (el0 >= r.minMinutes) R.ann[r.ruleId] = 1; });       // ไม่เด้งซ้ำถ้ากลับมาอ่านต่อ
+  const l = R.lesson;
+  view().innerHTML = `<div class="read-top mb-3"><div class="timer-box">
+      <div class="fw-semibold"><span class="pulse"></span>📖 กำลังอ่าน · ${esc(l.title)}</div>
+      <div class="timer" id="timer" aria-live="off">00:00:00</div>
+      <div class="d-flex gap-2 justify-content-center flex-wrap mt-1">
+        <button class="btn btn-danger btn-kid flex-fill" id="finBtn" data-act="finishRead">⏹ จบการอ่าน</button>
+        <button class="btn btn-light" data-act="cancelRead">ยกเลิก</button></div></div></div>
+    ${l.content ? `<div class="panel"><div class="d-flex justify-content-end gap-2 mb-2"><button class="btn btn-sm btn-light" data-act="fsDown" aria-label="ลดขนาดตัวอักษร">ก-</button><button class="btn btn-sm btn-light" data-act="fsUp" aria-label="เพิ่มขนาดตัวอักษร">ก+</button></div>
+      <div class="story" id="story" style="font-size:${S.fs}rem">${esc(l.content)}</div></div>`
+      : l.contentUrl ? `<iframe class="content-frame" src="${esc(embedUrl(l.contentUrl))}" allowfullscreen referrerpolicy="no-referrer" title="${esc(l.title)}"></iframe>`
+      : `<div class="panel">${empty(isUrl(l.imageUrl) ? '📖' : (l.imageUrl || '📖'), 'อ่านหนังสือด้วยกันนะ', 'อ่านหนังสือเล่มจริงหรือฟังคุณครูอ่าน<br>เมื่ออ่านเสร็จแล้วกด "จบการอ่าน"')}</div>`}
+    ${l.contentUrl ? `<div class="text-center mt-2"><a class="btn btn-outline-primary" href="${esc(l.contentUrl)}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> เปิดลิงก์เพิ่มเติม</a></div>` : ''}`;
+  tick(); S.timers.push(setInterval(tick, 1000));
+  S.timers.push(setInterval(() => call('ping', {}, { silent: true }), 240000));   // ต่ออายุ Login ระหว่างอ่านนาน ๆ
+}
+function tick() {
+  const el = $('#timer'); if (!el || !R) return;
+  const sec = Math.max(0, Math.floor((Date.now() + R.off - R.startMs) / 1000)), min = Math.floor(sec / 60);
+  el.textContent = clock(sec);
+  R.rules.forEach(r => {
+    if (R.ann[r.ruleId] || min < r.minMinutes) return;
+    R.ann[r.ruleId] = 1;
+    const top = R.rules.reduce((a, b) => b.score > a.score ? b : a);
+    Swal.fire({ toast: true, position: 'top', icon: 'success', timer: 5000, showConfirmButton: false,
+      title: r === top ? `🏆 ยอดเยี่ยม! ครบ ${r.minMinutes} นาทีแล้ว` : `🎉 ครบ ${r.minMinutes} นาทีแล้ว!`, text: `ได้รับ ${r.score} คะแนน` });
+  });
+}
+async function finishRead(btn) {
+  if (R.busy) return;
+  const c = await Swal.fire({ title: 'อ่านจบแล้วใช่ไหม?', icon: 'question', showCancelButton: true, confirmButtonText: 'ใช่ อ่านจบแล้ว', cancelButtonText: 'อ่านต่อ', reverseButtons: true });
+  if (!c.isConfirmed) return;
+  R.busy = true; btn.disabled = true;                                           // กันกดซ้ำ
+  const d = await call('finishReading', { sessionId: R.sessionId }, { text: 'กำลังบันทึก...' });
+  if (!d) {
+    R.busy = false; btn.disabled = false;
+    if (S.lastErr && ['ALREADY_DONE', 'SESSION_NOT_FOUND', 'SESSION_INVALID'].includes(S.lastErr.code)) location.hash = '#/student';
+    return;
+  }
+  clearTimers();
+  const badges = d.newBadges.map(b => `<div class="mt-2 fs-5">${esc(b.icon)} ได้เหรียญ <b>${esc(b.name)}</b></div>`).join('');
+  await Swal.fire({ confirmButtonText: 'ตกลง', allowOutsideClick: false, html: `<div class="pop">
+    <div style="font-size:4.2rem">${d.score > 0 ? '🎉' : '🌱'}</div><h2 class="fw-bold">${d.score > 0 ? 'เยี่ยมมาก!' : 'อ่านจบแล้ว!'}</h2>
+    <div class="fs-5">${d.minutes > 0 ? `อ่านครบ ${d.minutes} นาที` : 'อ่านไม่ถึง 1 นาที'}</div>
+    <div class="fs-2 fw-bold mt-2" style="color:#d97706">⭐ +${d.score} คะแนน</div>
+    ${d.score === 0 ? '<div class="text-muted mt-1">คราวหน้าลองอ่านให้นานขึ้นอีกนิดนะ</div>' : ''}
+    <div class="small text-muted mt-2">คะแนนรวม ${fmtN(d.totalScore)} · ${d.level.icon} Lv.${d.level.level} ${esc(d.level.name)}${d.streak > 1 ? ` · 🔥 ${d.streak} วัน` : ''}</div>${badges}</div>` });
+  location.hash = '#/student';
+}
+async function cancelRead() {
+  const c = await Swal.fire({ title: 'ยกเลิกการอ่านนี้?', text: 'เวลาที่อ่านไปจะไม่ถูกบันทึก', icon: 'warning', showCancelButton: true, confirmButtonText: 'ยกเลิกการอ่าน', cancelButtonText: 'อ่านต่อ' });
+  if (!c.isConfirmed) return;
+  if (await call('cancelReading', { sessionId: R.sessionId }, { text: 'กำลังยกเลิก...' })) { clearTimers(); location.hash = '#/student'; }
+}
+
+async function vHistory() {
+  sShell('history');
+  const h = await call('getStudentHistory'); if (!h) { view().innerHTML = retryBox(); return; }
+  view().innerHTML = `<h1 class="h3 fw-bold mb-3">🕘 ประวัติการอ่าน</h1>` + (h.length ? `<div class="d-grid gap-2">${h.map(x => `<div class="hist-item"><div class="pic">${media(x.image)}</div>
+    <div class="min-w-0"><div class="fw-semibold">${esc(x.lessonTitle)}</div><div class="small text-muted">${fmtDate(x.date)} · ${fmtN(x.minutes)} นาที</div></div><span class="score-pill">⭐ ${x.score}</span></div>`).join('')}</div>`
+    : `<div class="panel">${empty('📖', 'ยังไม่มีประวัติการอ่าน', 'เริ่มอ่านหนังสือเรื่องแรกกันเลย!<br><a class="btn btn-primary mt-3" href="#/student">ไปเลือกเรื่อง</a>')}</div>`);
+}
+async function vBadges() {
+  sShell('badges');
+  const b = await call('getStudentBadges'); if (!b) { view().innerHTML = retryBox(); return; }
+  view().innerHTML = `<h1 class="h3 fw-bold mb-1">🏆 เหรียญของฉัน</h1><p class="text-muted">ได้รับแล้ว ${b.earnedCount} จาก ${b.badges.length} เหรียญ</p>
+    ${b.badges.length ? `<div class="row g-3">${b.badges.map(x => `<div class="col-6 col-md-4 col-lg-3"><div class="badge-card ${x.earned ? '' : 'locked'}">
+      <div class="ic">${x.earned ? esc(x.icon) : '🔒'}</div><div class="fw-bold mt-1">${esc(x.name)}</div><div class="small text-muted">${esc(x.description)}</div>
+      ${x.earned ? '<div class="tag mt-2">ได้รับแล้ว ✔</div>' : `<div class="mini-bar mt-2"><i style="width:${x.percent}%"></i></div><div class="small mt-1">${esc(x.progressText)}</div>`}</div></div>`).join('')}</div>`
+      : `<div class="panel">${empty('🏅', 'ยังไม่มีเหรียญ', 'คุณครูกำลังเตรียมเหรียญให้อยู่')}</div>`}`;
+}
+async function showProfile() {
+  const p = await call('getStudentProfile'); if (!p) return;
+  Swal.fire({ confirmButtonText: 'ปิด', html: `<div style="font-size:3.5rem">${p.level.icon}</div><h3 class="fw-bold">${esc(p.student.fullName)}</h3>
+    <div class="text-muted">รหัส ${esc(p.student.studentCode)} · ${esc(p.student.className)} ห้อง ${esc(p.student.room)}</div>
+    <div class="my-2 fs-5">Lv.${p.level.level} ${esc(p.level.name)}</div>
+    <div>⭐ ${fmtN(p.stats.score)} คะแนน · 📖 ${fmtN(p.stats.minutes)} นาที · 📚 ${fmtN(p.stats.books)} เรื่อง</div>
+    <div class="mt-1">🔥 อ่านต่อเนื่อง ${p.stats.streak} วัน</div>` });
+}
+
+/* ============ Teacher ============ */
+const TMENU = [['dash', '#/teacher', 'bi-speedometer2', 'Dashboard'], ['students', '#/teacher/students', 'bi-people-fill', 'นักเรียน'], ['lessons', '#/teacher/lessons', 'bi-journal-richtext', 'บทเรียน'],
+  ['logs', '#/teacher/logs', 'bi-clock-history', 'ประวัติการอ่าน'], ['scores', '#/teacher/scores', 'bi-star-fill', 'คะแนน'], ['rank', '#/teacher/ranking', 'bi-trophy-fill', 'อันดับนักอ่าน'],
+  ['reports', '#/teacher/reports', 'bi-file-earmark-bar-graph-fill', 'รายงาน'], ['rules', '#/teacher/rules', 'bi-sliders', 'ตั้งค่าคะแนน'], ['settings', '#/teacher/settings', 'bi-gear-fill', 'ตั้งค่าระบบ']];
+function menuHtml(on, dismiss) {
+  const d = dismiss ? ' data-bs-dismiss="offcanvas"' : '';
+  return TMENU.filter(m => m[0] !== 'settings' || S.user.role === 'ADMIN').map(m => `<a href="${m[1]}" class="${m[0] === on ? 'on' : ''}"${d}><i class="bi ${m[2]}"></i>${m[3]}</a>`).join('')
+    + `<a href="#" data-act="logout"${d}><i class="bi bi-box-arrow-right"></i>ออกจากระบบ</a>`;
+}
+function tShell(on) {
+  document.body.className = 'is-teacher';
+  const title = (TMENU.find(m => m[0] === on) || [])[3] || '';
+  const brand = `<div class="t-brand">${logoHtml()}<span>${esc(S.set.systemName)}</span></div>`;
+  $('#app').innerHTML = `<aside class="t-side">${brand}<nav class="t-menu">${menuHtml(on)}</nav></aside>
+    <div class="t-shell"><div class="t-top"><button class="btn btn-light menu-btn" data-bs-toggle="offcanvas" data-bs-target="#oc" aria-label="เมนู"><i class="bi bi-list fs-4"></i></button>
+      <div class="ttl">${esc(title)}</div><span class="small text-muted d-none d-sm-inline">${esc(S.user.name)} (${S.user.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'ครู'})</span></div>
+      <main class="t-main" id="view"></main></div>
+    <div class="offcanvas offcanvas-start" id="oc" tabindex="-1"><div class="offcanvas-header">${brand}<button class="btn-close" data-bs-dismiss="offcanvas" aria-label="ปิด"></button></div>
+      <div class="offcanvas-body"><nav class="t-menu">${menuHtml(on, true)}</nav></div></div>`;
+}
+const pageHead = (t, act) => `<div class="page-head"><h1>${t}</h1>${act || ''}</div>`;
+async function getOpts() { if (!S.opts) S.opts = await call('getFilterOptions', {}, { silent: true }); return S.opts || { classes: [], rooms: [], students: [], lessons: [] }; }
+const PERIODS = [['today', 'วันนี้'], ['week', 'สัปดาห์นี้'], ['month', 'เดือนนี้'], ['term', 'ภาคเรียน'], ['year', 'ปีการศึกษา']];
+function fbar(id, fields, o, extra) {
+  const sel = (n, l, arr, ph) => `<div><label>${l}</label><select class="form-select" name="${n}"><option value="">${ph || 'ทั้งหมด'}</option>${arr.map(a => `<option value="${esc(a[0])}">${esc(a[1])}</option>`).join('')}</select></div>`;
+  const F = {
+    q: '<div><label>ค้นหาชื่อ/รหัส</label><input class="form-control" name="q" placeholder="พิมพ์ชื่อหรือรหัส"></div>',
+    className: sel('className', 'ระดับชั้น', o.classes.map(x => [x, x])), room: sel('room', 'ห้อง', o.rooms.map(x => [x, x])),
+    studentId: sel('studentId', 'นักเรียน', o.students.map(s => [s.id, s.code + ' ' + s.name])), lessonId: sel('lessonId', 'บทเรียน', o.lessons.map(l => [l.id, l.title])),
+    active: sel('active', 'สถานะ', [['1', 'ใช้งาน'], ['0', 'ปิดใช้งาน']]), period: sel('period', 'ช่วงเวลา', PERIODS, 'ทั้งหมด'),
+    dateFrom: '<div><label>วันที่เริ่มต้น</label><input type="date" class="form-control" name="dateFrom"></div>', dateTo: '<div><label>วันที่สิ้นสุด</label><input type="date" class="form-control" name="dateTo"></div>'
+  };
+  return `<form class="fbar" id="${id}">${fields.map(f => F[f]).join('')}<div class="full d-flex align-items-end gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="bi bi-search"></i> ค้นหา</button>${extra || ''}</div></form>`;
+}
+function bindF(id, fn, defaults) {
+  const f = $('#' + id); if (!f) return;
+  Object.keys(defaults || {}).forEach(k => { if (f.elements[k]) f.elements[k].value = defaults[k]; });
+  f.addEventListener('submit', e => { e.preventDefault(); fn(Object.fromEntries(new FormData(f))); });
+  fn(Object.fromEntries(new FormData(f)));
+}
+const tbl = (heads, rows, cls) => `<div class="tbl-wrap"><table class="table table-hover align-middle ${cls || ''}"><thead><tr>${heads.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+const medal = n => n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n;
+const rankList = l => l.length ? l.map(r => `<div class="rank-row"><div class="rank-no">${medal(r.rank)}</div><div class="flex-fill min-w-0"><div class="fw-semibold">${esc(r.studentName)}</div><div class="small text-muted">${esc(r.className)} ห้อง ${esc(r.room)} · ${fmtN(r.minutes)} นาที · ${fmtN(r.count)} เรื่อง</div></div><span class="score-pill">⭐ ${fmtN(r.score)}</span></div>`).join('')
+  : empty('🏅', 'ยังไม่มีข้อมูลอันดับ', 'ยังไม่มีการอ่านในช่วงเวลานี้');
+
+async function vTDash() {
+  tShell('dash'); const o = await getOpts();
+  const d = await call('getTeacherDashboard'); if (!d) { view().innerHTML = retryBox(); return; }
+  view().innerHTML = pageHead('📊 ภาพรวม') + `<div class="row g-2 g-md-3 mb-3">
+    ${statCard('👧', 'นักเรียนทั้งหมด', d.students, 'คน', 'c-read')}${statCard('📚', 'บทเรียน', d.lessons, 'เรื่อง', 'c-book')}
+    ${statCard('⏱️', 'เวลาอ่านรวม', d.minutes, 'นาที', 'c-pink')}${statCard('⭐', 'คะแนนรวม', d.score, 'คะแนน', 'c-star')}</div>
+    <div class="row g-3"><div class="col-lg-7"><div class="panel h-100"><b>เวลาอ่านรวม 14 วันล่าสุด (นาที)</b> <span class="small text-muted">· วันนี้ ${fmtN(d.todayMinutes)} นาที</span><div class="chart-box mt-2"><canvas id="ch"></canvas></div></div></div>
+    <div class="col-lg-5"><div class="panel h-100"><div class="d-flex flex-wrap gap-2 align-items-center mb-2"><b class="me-auto">🏆 อันดับนักอ่าน</b>
+      <select class="form-select form-select-sm w-auto" id="rkP">${PERIODS.map(p => `<option value="${p[0]}">${p[1]}</option>`).join('')}</select>
+      <select class="form-select form-select-sm w-auto" id="rkC"><option value="">ทุกชั้น</option>${o.classes.map(c => `<option>${esc(c)}</option>`).join('')}</select></div><div id="rk"></div></div></div></div>`;
+  $('#rkP').value = 'month';
+  const loadRank = async () => { const r = await call('getTopReaders', { period: $('#rkP').value, className: $('#rkC').value, limit: 10 }, { text: 'กำลังจัดอันดับ...' }); $('#rk').innerHTML = r ? rankList(r) : ''; };
+  $('#rkP').onchange = loadRank; $('#rkC').onchange = loadRank; loadRank();
+  S.chart = new Chart($('#ch'), { type: 'bar', data: { labels: d.daily.map(x => x.date.slice(8) + '/' + x.date.slice(5, 7)), datasets: [{ data: d.daily.map(x => x.minutes), backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#2563EB', borderRadius: 8 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
+}
+
+/* ----- Students ----- */
+async function vTStudents() {
+  tShell('students'); const o = await getOpts();
+  view().innerHTML = pageHead('👧 นักเรียน', '<button class="btn btn-primary" data-act="stuNew"><i class="bi bi-plus-lg"></i> เพิ่มนักเรียน</button>') + fbar('fs', ['q', 'className', 'room', 'active'], o) + '<div id="out"></div>';
+  bindF('fs', loadStudents);
+}
+async function loadStudents(f) {
+  const l = await call('getStudents', f); if (!l) return; S.rows.stu = l;
+  $('#out').innerHTML = l.length ? tbl(['รหัส', 'ชื่อ-นามสกุล', 'ชั้น/ห้อง', 'คะแนน', 'เวลา(นาที)', 'ใช้งาน', ''], l.map(s => `<tr class="${s.active ? '' : 'text-muted'}"><td>${esc(s.studentCode)}</td>
+    <td><a href="#" class="fw-semibold text-decoration-none" data-act="stuView" data-id="${s.studentId}">${esc(s.fullName)}</a></td><td>${esc(s.className)} / ${esc(s.room)}</td><td>${fmtN(s.score)}</td><td>${fmtN(s.minutes)}</td>
+    <td><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" data-act="stuTog" data-id="${s.studentId}" ${s.active ? 'checked' : ''} aria-label="เปิด/ปิดนักเรียน"></div></td>
+    <td class="text-nowrap"><button class="btn btn-sm btn-outline-primary" data-act="stuEdit" data-id="${s.studentId}"><i class="bi bi-pencil"></i> แก้ไข</button></td></tr>`).join(''))
+    : `<div class="panel">${empty('👧', 'ไม่พบนักเรียน', 'ลองเปลี่ยนตัวกรอง หรือกดเพิ่มนักเรียน')}</div>`;
+}
+function studentForm(s) {
+  const n = !s.studentId, v = k => esc(s[k] == null ? '' : s[k]);
+  return `<form id="sf" class="row g-3" novalidate>
+    <div class="col-md-6"><label class="form-label">รหัสนักเรียน *</label><input class="form-control" name="studentCode" value="${v('studentCode')}"></div>
+    <div class="col-md-6"><label class="form-label">ชื่อ-นามสกุล *</label><input class="form-control" name="fullName" value="${v('fullName')}"></div>
+    <div class="col-md-6"><label class="form-label">ระดับชั้น *</label><input class="form-control" name="className" list="dlc" value="${v('className')}" placeholder="เช่น อนุบาล 2"><datalist id="dlc">${(S.opts ? S.opts.classes : []).map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+    <div class="col-md-6"><label class="form-label">ห้อง</label><input class="form-control" name="room" value="${v('room')}"></div>
+    <div class="col-md-6"><label class="form-label">Username <span class="text-muted small">(เว้นว่าง = ใช้รหัสนักเรียน)</span></label><input class="form-control" name="username" value="${v('username')}"></div>
+    <div class="col-md-6"><label class="form-label">รหัสผ่าน ${n ? '*' : '<span class="text-muted small">(เว้นว่าง = ไม่เปลี่ยน)</span>'}</label><input class="form-control" name="password" autocomplete="new-password"></div>
+    <div class="col-12"><label class="form-label">URL รูปภาพ</label><input class="form-control" name="photoUrl" value="${v('photoUrl')}" placeholder="https://..."></div>
+    <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="active" ${s.active === false ? '' : 'checked'}><label class="form-check-label">เปิดใช้งาน</label></div></div>
+    <input type="hidden" name="studentId" value="${v('studentId')}"></form>`;
+}
+function openStudentForm(s) {
+  openModal(s.studentId ? '✏️ แก้ไขนักเรียน' : '➕ เพิ่มนักเรียน', studentForm(s), '<button class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button><button class="btn btn-primary" data-act="stuSave">💾 บันทึก</button>');
+}
+async function saveStudent(btn) {
+  const d = formObj('#sf');
+  if (!d.studentCode.trim() || !d.fullName.trim() || !d.className.trim()) return Swal.fire({ icon: 'warning', title: '⚠️ กรอกข้อมูลให้ครบ', text: 'ต้องกรอก รหัสนักเรียน ชื่อ-นามสกุล และระดับชั้น', confirmButtonText: 'ตกลง' });
+  btn.disabled = true;
+  const r = await call('saveStudent', d, { text: 'กำลังบันทึก...' }); btn.disabled = false;
+  if (!r) return; closeModal(); S.opts = null; toast('บันทึกข้อมูลนักเรียนแล้ว'); getOpts(); loadStudents(Object.fromEntries(new FormData($('#fs'))));
+}
+async function viewStudent(id) {
+  const d = await call('getStudentDetail', { studentId: id }); if (!d) return;
+  const s = d.student, st = d.stats;
+  openModal('👧 ' + s.fullName, `<div class="d-flex gap-3 align-items-center mb-3"><div class="fs-1">${d.level.icon}</div><div><div class="fw-semibold">Lv.${d.level.level} ${esc(d.level.name)}</div>
+    <div class="text-muted small">รหัส ${esc(s.studentCode)} · ${esc(s.className)} ห้อง ${esc(s.room)} · Username ${esc(s.username)}</div></div></div>
+    <div class="row g-2 mb-3 text-center"><div class="col-4"><div class="panel py-2"><b class="fs-4">${fmtN(st.score)}</b><div class="small">คะแนน</div></div></div><div class="col-4"><div class="panel py-2"><b class="fs-4">${fmtN(st.minutes)}</b><div class="small">นาที</div></div></div><div class="col-4"><div class="panel py-2"><b class="fs-4">${fmtN(st.books)}</b><div class="small">เรื่อง</div></div></div></div>
+    <div class="mb-2">🔥 อ่านต่อเนื่อง ${st.streak} วัน · 🏆 เหรียญ: ${d.badges.length ? d.badges.map(b => esc(b.icon + ' ' + b.name)).join(', ') : 'ยังไม่มี'}</div>
+    <h6 class="mt-3">ประวัติล่าสุด</h6>${d.logs.length ? tbl(['วันที่', 'เรื่อง', 'นาที', 'คะแนน'], d.logs.map(l => `<tr><td>${fmtDate(l.date)}</td><td>${esc(l.lessonTitle)}</td><td>${l.minutes}</td><td>${l.score}</td></tr>`).join('')) : '<div class="text-muted">ยังไม่มีประวัติการอ่าน</div>'}`);
+}
+
+/* ----- Lessons ----- */
+async function vTLessons() {
+  tShell('lessons'); await getOpts();
+  view().innerHTML = pageHead('📚 บทเรียน', '<button class="btn btn-primary" data-act="lesNew"><i class="bi bi-plus-lg"></i> เพิ่มบทเรียน</button>') + '<div id="out"></div>';
+  loadLessons();
+}
+async function loadLessons() {
+  const l = await call('getAllLessons'); if (!l) return; S.rows.les = l;
+  $('#out').innerHTML = l.length ? tbl(['ลำดับ', 'ภาพ', 'ชื่อเรื่อง', 'ชั้น', 'หมวดหมู่', 'เปิดใช้งาน', ''], l.map(x => `<tr class="${x.active ? '' : 'text-muted'}"><td>${x.sortOrder}</td><td style="width:64px">${media(x.imageUrl, 'fs-2')}</td>
+    <td><div class="fw-semibold">${esc(x.title)}</div><div class="small text-muted">${esc(x.description)}</div></td><td>${esc(x.level)}</td><td>${esc(x.category)}</td>
+    <td><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" data-act="lesTog" data-id="${x.lessonId}" ${x.active ? 'checked' : ''} aria-label="เปิด/ปิดบทเรียน"></div></td>
+    <td class="text-nowrap"><button class="btn btn-sm btn-outline-primary" data-act="lesEdit" data-id="${x.lessonId}"><i class="bi bi-pencil"></i> แก้ไข</button></td></tr>`).join(''))
+    : `<div class="panel">${empty('📚', 'ยังไม่มีบทเรียน', 'กดปุ่ม "เพิ่มบทเรียน" หรือเพิ่มข้อมูลในชีต Lessons ได้เลย')}</div>`;
+}
+function lessonForm(l) {
+  const v = k => esc(l[k] == null ? '' : l[k]);
+  return `<form id="lf2" class="row g-3" novalidate>
+    <div class="col-12"><label class="form-label">ชื่อเรื่อง *</label><input class="form-control" name="title" value="${v('title')}"></div>
+    <div class="col-12"><label class="form-label">คำอธิบาย</label><input class="form-control" name="description" value="${v('description')}"></div>
+    <div class="col-md-6"><label class="form-label">รูปภาพ <span class="text-muted small">(URL หรืออีโมจิ เช่น 🐰)</span></label><input class="form-control" name="imageUrl" value="${v('imageUrl')}"></div>
+    <div class="col-md-6"><label class="form-label">ลิงก์เพิ่มเติม <span class="text-muted small">(ไม่บังคับ)</span></label><input class="form-control" name="contentUrl" value="${v('contentUrl')}" placeholder="https://..."></div>
+    <div class="col-12"><label class="form-label">เนื้อหาเรื่อง <span class="text-muted small">(พิมพ์หรือวางข้อความได้เลย ขึ้นบรรทัดใหม่ได้)</span></label><textarea class="form-control" name="content" rows="10" maxlength="40000" placeholder="พิมพ์หรือวางเนื้อหานิทานที่นี่...">${v('content')}</textarea></div>
+    <div class="col-md-4"><label class="form-label">หมวดหมู่</label><input class="form-control" name="category" value="${v('category')}" placeholder="เช่น นิทาน"></div>
+    <div class="col-md-4"><label class="form-label">ระดับชั้น *</label><input class="form-control" name="level" value="${v('level')}" placeholder="เช่น อนุบาล 1"></div>
+    <div class="col-md-4"><label class="form-label">ลำดับ</label><input type="number" class="form-control" name="sortOrder" value="${v('sortOrder')}"></div>
+    <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="active" ${l.active === false ? '' : 'checked'}><label class="form-check-label">เปิดใช้งาน</label></div></div>
+    <input type="hidden" name="lessonId" value="${v('lessonId')}"></form>`;
+}
+function openLessonForm(l) { openModal(l.lessonId ? '✏️ แก้ไขบทเรียน' : '➕ เพิ่มบทเรียน', lessonForm(l), '<button class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button><button class="btn btn-primary" data-act="lesSave">💾 บันทึก</button>'); }
+async function saveLesson(btn) {
+  const d = formObj('#lf2');
+  if (!d.title.trim() || !d.level.trim()) return Swal.fire({ icon: 'warning', title: '⚠️ กรอกข้อมูลให้ครบ', text: 'ต้องกรอก ชื่อเรื่อง และ ระดับชั้น', confirmButtonText: 'ตกลง' });
+  btn.disabled = true;
+  const r = await call(d.lessonId ? 'updateLesson' : 'createLesson', d, { text: 'กำลังบันทึก...' }); btn.disabled = false;
+  if (!r) return; closeModal(); toast('บันทึกบทเรียนแล้ว'); loadLessons();
+}
+
+/* ----- Logs / Scores ----- */
+async function vTLogs() {
+  tShell('logs'); const o = await getOpts();
+  view().innerHTML = pageHead('🕘 ประวัติการอ่าน') + fbar('fl', ['q', 'className', 'room', 'studentId', 'lessonId', 'dateFrom', 'dateTo'], o) + '<div class="small text-muted mb-2">แสดงล่าสุดไม่เกิน 500 รายการ</div><div id="out"></div>';
+  bindF('fl', async f => {
+    const l = await call('getReadingLogs', f); if (!l) return;
+    $('#out').innerHTML = l.length ? tbl(['วันที่', 'เวลา', 'นักเรียน', 'บทเรียน', 'นาที', 'คะแนน', ''], l.map(x => `<tr><td>${fmtDate(x.date)}</td><td>${esc(x.startTime.slice(0, 5))}-${esc(x.endTime.slice(0, 5))}</td><td>${esc(x.studentName)}<div class="small text-muted">${esc(x.className)}/${esc(x.room)}</div></td>
+      <td>${esc(x.lessonTitle)}</td><td>${x.minutes}</td><td><b>${x.score}</b></td><td><button class="btn btn-sm btn-outline-secondary" data-act="logEdit" data-id="${x.logId}" data-score="${x.score}" title="แก้ไขคะแนน"><i class="bi bi-pencil-square"></i></button></td></tr>`).join(''))
+      : `<div class="panel">${empty('📖', 'ไม่พบประวัติการอ่าน', 'ลองเปลี่ยนตัวกรอง')}</div>`;
+  });
+}
+async function editLogScore(id, cur) {
+  const r = await Swal.fire({ title: 'แก้ไขคะแนน', html: `<input id="sc" class="swal2-input" type="number" min="0" step="1" value="${cur}" placeholder="คะแนนใหม่"><input id="rs" class="swal2-input" placeholder="เหตุผล (จำเป็น)">`,
+    showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', focusConfirm: false, preConfirm: () => ({ score: $('#sc').value, reason: $('#rs').value }) });
+  if (!r.isConfirmed) return;
+  if (await call('adjustLogScore', { logId: id, score: r.value.score, reason: r.value.reason }, { text: 'กำลังบันทึก...' })) { toast('แก้ไขคะแนนแล้ว'); $('#fl').requestSubmit(); }
+}
+const reportTable = (rows, click) => rows.length ? tbl(['นักเรียน', 'ชั้น/ห้อง', 'เวลาอ่าน (นาที)', 'จำนวนเรื่อง', 'คะแนน'], rows.map(r => `<tr class="${click ? 'tr-click' : ''}" ${click ? `data-act="stuView" data-id="${r.studentId}"` : ''}><td><div class="fw-semibold">${esc(r.studentName)}</div><div class="small text-muted">${esc(r.studentCode)}</div></td>
+  <td>${esc(r.className)} / ${esc(r.room)}</td><td>${fmtN(r.minutes)}</td><td>${fmtN(r.count)}</td><td><b>${fmtN(r.score)}</b></td></tr>`).join('')) : `<div class="panel">${empty('📊', 'ไม่พบข้อมูล', 'ลองเปลี่ยนตัวกรอง')}</div>`;
+async function vTScores() {
+  tShell('scores'); const o = await getOpts();
+  view().innerHTML = pageHead('⭐ คะแนนนักเรียน') + fbar('fc', ['q', 'className', 'room', 'period'], o) + '<div id="out"></div>';
+  bindF('fc', async f => { const r = await call('getReadingReport', f); if (r) $('#out').innerHTML = reportTable(r.rows.slice().sort((a, b) => b.score - a.score), true); });
+}
+async function vTRank() {
+  tShell('rank'); const o = await getOpts();
+  view().innerHTML = pageHead('🏆 อันดับนักอ่าน') + fbar('fr', ['period', 'className', 'room'], o) + '<div class="panel" id="out"></div>';
+  bindF('fr', async f => { f.limit = 50; const r = await call('getTopReaders', f); if (r) $('#out').innerHTML = rankList(r); }, { period: 'month' });
+}
+
+/* ----- Reports ----- */
+async function vTReports() {
+  tShell('reports'); const o = await getOpts();
+  view().innerHTML = pageHead('📑 รายงานการอ่าน') + fbar('fp', ['className', 'room', 'studentId', 'lessonId', 'dateFrom', 'dateTo'], o, '<button type="button" class="btn btn-success" data-act="csv"><i class="bi bi-filetype-csv"></i> CSV</button>') + '<div id="out"></div>';
+  bindF('fp', async f => {
+    const [r, c] = await Promise.all([call('getReadingReport', f), call('getClassSummary', f, { silent: true })]); if (!r) return;
+    const t = r.total;
+    $('#out').innerHTML = `<div class="row g-2 mb-3 text-center">${[['👧', 'นักเรียน', t.students], ['⏱️', 'เวลารวม (นาที)', t.minutes], ['📚', 'จำนวนเรื่อง', t.count], ['⭐', 'คะแนนรวม', t.score]].map(x => `<div class="col-6 col-md-3"><div class="panel py-2"><div>${x[0]} <b class="fs-4">${fmtN(x[2])}</b></div><div class="small text-muted">${x[1]}</div></div></div>`).join('')}</div>`
+      + reportTable(r.rows, true)
+      + (c && c.length ? `<h6 class="mt-4">สรุปตามห้องเรียน</h6>` + tbl(['ชั้น/ห้อง', 'นักเรียน', 'เวลารวม', 'เฉลี่ย/คน', 'จำนวนเรื่อง', 'คะแนน'], c.map(x => `<tr><td>${esc(x.className)} / ${esc(x.room)}</td><td>${x.students}</td><td>${fmtN(x.minutes)}</td><td>${fmtN(x.avgMinutes)}</td><td>${fmtN(x.count)}</td><td><b>${fmtN(x.score)}</b></td></tr>`).join('')) : '');
+  });
+}
+async function exportCsv() {
+  const d = await call('exportReportCsv', Object.fromEntries(new FormData($('#fp'))), { text: 'กำลังสร้างไฟล์...' }); if (!d) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF' + d.csv], { type: 'text/csv;charset=utf-8;' })); a.download = d.filename;
+  document.body.appendChild(a); a.click(); a.remove(); toast('ดาวน์โหลดไฟล์ CSV แล้ว');
+}
+
+/* ----- Score rules ----- */
+const ruleRow = r => { r = r || { ruleId: '', minMinutes: '', maxMinutes: '', score: '', description: '', active: true };
+  return `<tr data-rid="${esc(r.ruleId)}"><td><input class="form-control" style="min-width:80px" type="number" min="0" name="minMinutes" value="${esc(r.minMinutes)}"></td><td><input class="form-control" style="min-width:90px" type="number" min="0" name="maxMinutes" value="${esc(r.maxMinutes)}"></td>
+  <td><input class="form-control" style="min-width:70px" type="number" min="0" name="score" value="${esc(r.score)}"></td><td><input class="form-control" style="min-width:160px" name="description" value="${esc(r.description)}"></td>
+  <td class="text-center"><input class="form-check-input" type="checkbox" name="active" ${r.active ? 'checked' : ''}></td><td><button class="btn btn-sm btn-outline-danger" data-act="ruleDel" aria-label="ลบ"><i class="bi bi-trash"></i></button></td></tr>`; };
+async function vTRules() {
+  tShell('rules');
+  const r = await call('getAllScoreRules'); if (!r) { view().innerHTML = retryBox(); return; }
+  view().innerHTML = pageHead('🎚️ ตั้งค่าเกณฑ์คะแนน', '<button class="btn btn-outline-primary" data-act="ruleAdd"><i class="bi bi-plus-lg"></i> เพิ่มเกณฑ์</button><button class="btn btn-primary" data-act="ruleSave">💾 บันทึก</button>')
+    + `<div class="alert alert-info">คะแนนคำนวณจาก "นาทีที่อ่านจริง" (ปัดลงเป็นนาทีเต็ม) ช่วงเวลาของเกณฑ์ที่เปิดใช้งานต้องไม่ซ้อนทับกัน มีผลทันทีกับการอ่านครั้งถัดไป</div>`
+    + tbl(['นาทีต่ำสุด', 'นาทีสูงสุด', 'คะแนน', 'คำอธิบาย', 'ใช้งาน', ''], r.map(ruleRow).join(''), '').replace('<tbody>', '<tbody id="rb">');
+}
+async function saveRules() {
+  const rules = $$('#rb tr').map((tr, i) => ({ ruleId: tr.dataset.rid, minMinutes: $('[name=minMinutes]', tr).value, maxMinutes: $('[name=maxMinutes]', tr).value, score: $('[name=score]', tr).value, description: $('[name=description]', tr).value, active: $('[name=active]', tr).checked, sortOrder: i + 1 }));
+  if (await call('saveScoreRules', { rules }, { text: 'กำลังบันทึก...' })) { toast('บันทึกเกณฑ์คะแนนแล้ว'); vTRules(); }
+}
+
+/* ----- System settings (ADMIN) ----- */
+async function vTSettings() {
+  tShell('settings');
+  if (S.user.role !== 'ADMIN') { view().innerHTML = `<div class="panel">${empty('🔒', 'เฉพาะผู้ดูแลระบบ', 'บัญชีนี้ไม่มีสิทธิ์แก้ไขการตั้งค่าระบบ')}</div>`; return; }
+  const l = await call('getAllSettings'); if (!l) { view().innerHTML = retryBox(); return; }
+  view().innerHTML = pageHead('⚙️ ตั้งค่าระบบ', '<button class="btn btn-primary" data-act="setSave">💾 บันทึก</button>') + `<form id="stf" class="panel"><div class="row g-3">${l.map(x => `<div class="col-md-6"><label class="form-label fw-semibold">${esc(x.key)}</label>
+    <input class="form-control ${/_COLOR$/.test(x.key) ? 'form-control-color w-100' : ''}" ${/_COLOR$/.test(x.key) ? 'type="color"' : ''} data-key="${esc(x.key)}" value="${esc(x.value)}"><div class="form-text">${esc(x.description)}</div></div>`).join('')}</div></form>`;
+}
+async function saveSettings() {
+  const items = $$('#stf [data-key]').map(e => ({ key: e.dataset.key, value: e.value }));
+  if (await call('saveSettings', { items }, { text: 'กำลังบันทึก...' })) { toast('บันทึกการตั้งค่าแล้ว (ธีมใหม่จะเห็นหลังรีเฟรช)'); }
+}
+
+/* ============ Events (delegation) ============ */
+const ACT = {
+  role: el => { S.loginRole = el.dataset.role; renderLogin(); },
+  eye: el => { const i = $('#lp'); i.type = i.type === 'password' ? 'text' : 'password'; },
+  logout: (el, e) => { e.preventDefault(); doLogout(); },
+  profile: showProfile, reload: () => route(),
+  cat: el => { $$('.chip').forEach(c => c.classList.toggle('on', c === el)); $$('#lessonGrid > div').forEach(c => { c.style.display = !el.dataset.cat || c.dataset.cat === el.dataset.cat ? '' : 'none'; }); },
+  fsUp: () => setFs(.15), fsDown: () => setFs(-.15),
+  startRead: startRead, finishRead: finishRead, cancelRead: cancelRead,
+  stuNew: () => openStudentForm({}), stuEdit: el => openStudentForm(S.rows.stu.find(s => s.studentId === el.dataset.id) || {}), stuSave: saveStudent,
+  stuView: (el, e) => { e.preventDefault(); viewStudent(el.dataset.id); },
+  stuTog: async el => { const on = el.checked, ok = await call('toggleStudent', { studentId: el.dataset.id, active: on }, { text: 'กำลังบันทึก...' }); if (!ok) el.checked = !on; else toast(on ? 'เปิดใช้งานนักเรียนแล้ว' : 'ปิดใช้งานนักเรียนแล้ว'); },
+  lesNew: () => openLessonForm({}), lesEdit: el => openLessonForm(S.rows.les.find(l => l.lessonId === el.dataset.id) || {}), lesSave: saveLesson,
+  lesTog: async el => { const on = el.checked, ok = await call('toggleLesson', { lessonId: el.dataset.id, active: on }, { text: 'กำลังบันทึก...' }); if (!ok) el.checked = !on; else toast(on ? 'เปิดบทเรียนแล้ว' : 'ปิดบทเรียนแล้ว'); },
+  logEdit: el => editLogScore(el.dataset.id, el.dataset.score), csv: exportCsv,
+  ruleAdd: () => $('#rb').insertAdjacentHTML('beforeend', ruleRow()), ruleDel: el => el.closest('tr').remove(), ruleSave: saveRules, setSave: saveSettings
+};
+/* ลิงก์ภายในแอป (#/...) เปลี่ยนหน้าด้วย JS ไม่ให้เบราว์เซอร์นำทางออกจาก iframe (กันหน้าขาว) */
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#/"]');
+  if (!a) return;
+  e.preventDefault();
+  if (location.hash === a.getAttribute('href')) route(); else location.hash = a.getAttribute('href');
+});
+document.addEventListener('click', e => { const el = e.target.closest('[data-act]'); if (el && ACT[el.dataset.act] && el.type !== 'checkbox') { ACT[el.dataset.act](el, e); } });
+document.addEventListener('change', e => { const el = e.target; if (el.type === 'checkbox' && el.dataset.act && ACT[el.dataset.act]) ACT[el.dataset.act](el, e); });
+document.addEventListener('submit', e => { if (e.target.id === 'lf') { e.preventDefault(); doLogin(e.target); } });
+
+/* ============ Router (SPA, hash) ============ */
+function route() {
+  clearTimers();
+  const parts = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean), first = parts[0] || '';
+  if (!S.user) { if (first !== 'login') { location.hash = '#/login'; return; } return renderLogin(); }
+  const teacher = S.user.role !== 'STUDENT', home = teacher ? '#/teacher' : '#/student';
+  if (!first || first === 'login' || (teacher && first !== 'teacher') || (!teacher && first === 'teacher')) { if (location.hash !== home) { location.hash = home; return; } }
+  window.scrollTo(0, 0);
+  if (teacher) {
+    const T = { '': vTDash, students: vTStudents, lessons: vTLessons, logs: vTLogs, scores: vTScores, ranking: vTRank, reports: vTReports, rules: vTRules, settings: vTSettings };
+    return (T[parts[1] || ''] || vTDash)();
+  }
+  if (first === 'reading' && parts[1]) return vReading(decodeURIComponent(parts[1]));
+  if (first === 'history') return vHistory();
+  if (first === 'badges') return vBadges();
+  return vStudentHome();
+}
+window.addEventListener('hashchange', route);
+
+/* ============ Boot ============ */
+(async function boot() {
+  const st = await call('getPublicSettings', {}, { text: 'กำลังเริ่มระบบ...', silent: true });
+  if (!st) {
+    $('#app').innerHTML = `<div class="login-wrap"><div class="login-card text-center">${empty('🛠️', 'ระบบยังไม่พร้อมใช้งาน', esc((S.lastErr && S.lastErr.message) || 'กรุณาติดต่อผู้ดูแลระบบ'))}<button class="btn btn-primary mt-3" data-act="reload">ลองใหม่</button></div></div>`;
+    ACT.reload = () => location.reload(); return;
+  }
+  applySettings(st);
+  const t = store.get('lr_token');
+  if (t) { S.token = t; loading(true, 'กำลังกู้คืนการเข้าสู่ระบบ...'); const u = await call('getCurrentUser', {}, { silent: true, text: false }); loading(false); if (u) S.user = u; else { S.token = null; store.del('lr_token'); } }
+  route();
+})();
+})();
+</script>
+
+</body>
+</html>
